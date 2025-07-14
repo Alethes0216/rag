@@ -28,3 +28,12 @@ output/
 pyproject.toml
 uv.lock
 .env
+
+# Ignore dataset directories
+data/hotpotqa/
+data/2wikimultihopqa/
+data/musique/
+data/bamboogle/
+data/photpotqa/
+data/p2wikimultihopqa/
+data/pmusique/

@@ -69,7 +69,7 @@ if __name__ == '__main__':
     train_data = []
     for line in lines:
         train_data.append({
-            "data_source": "musique_re_call",
+            "data_source": "2wikimultihopqa_re_call",
             "question": line['question'],
             "ability": "re_call",
             "reward_model": {
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     random.shuffle(lines)
     for line in lines[:100]:
         dev_data.append({
-            "data_source": "musique_re_call",
+            "data_source": "2wikimultihopqa_re_call",
             "question": line['question'],
             "ability": "re_call",
             "reward_model": {

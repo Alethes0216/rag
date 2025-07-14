@@ -6,26 +6,26 @@ MAX_PROMPT_LENGTH=1536
 MAX_RESPONSE_LENGTH=6656
 USE_RE_CALL=True
 PROMPT_TEMPLATE_NAME=re_call_template_sys
-ACTOR_MODEL_PATH=/your/model/path
+ACTOR_MODEL_PATH=/root/recall/Qwen2.5-7B-Instruct
 ROLLOUT_NAME=vllm_with_tool
 REWARD_MANAGER=re_call
 ROLLOUT_N=5
 ROLLOUT_TP=2
 ROLLOUT_GPU_UTIL=0.8
 MAX_TURNS=5
-SEARCH_URL=/your/search/url
-SANDBOX_URL=/your/sandbox/url
-PROJECT_NAME=project-name-on-wandb
-EXPERIMENT_NAME=experiment-name-on-wandb
+SEARCH_URL=http://0.0.0.0:8002
+SANDBOX_URL=http://0.0.0.0:8001
+PROJECT_NAME=recall-training
+EXPERIMENT_NAME=try1
 NNODES=1
-N_GPUS_PER_NODE=8
+N_GPUS_PER_NODE=2
 SAVE_FREQ=10
 TEST_FREQ=10
 TOTAL_EPOCHS=2
-WANDB_API_KEY=your-wandb-api-key
-SAVE_PATH=/your/save/path
-TRAIN_FILES=/your/train/file/path/or/list
-TEST_FILES=/your/test/file/path/or/list
+WANDB_API_KEY=b9e9ff3719bf807a43ce2f0591e8158d75cefedd
+SAVE_PATH=/root/checkpoints
+TRAIN_FILES=[/root/recall/data/p2wikimultihopqa/train.parquet,/root/recall/data/photpotqa/train.parquet,/root/recall/data/pmusique/train.parquet]
+TEST_FILES=[/root/recall/data/p2wikimultihopqa/test.parquet,/root/recall/data/photpotqa/test.parquet,/root/recall/data/pmusique/test.parquet]
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -118,7 +118,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.logger="[console, wandb]" \
     trainer.project_name=${PROJECT_NAME} \
     trainer.experiment_name=${EXPERIMENT_NAME} \
-    trainer.n_gpus_per_node=8 \
+    trainer.n_gpus_per_node=${N_GPUS_PER_NODE} \
     trainer.nnodes=${NNODES} \
     trainer.save_freq=${SAVE_FREQ} \
     trainer.test_freq=${TEST_FREQ} \
@@ -126,4 +126,4 @@ python3 -m verl.trainer.main_ppo \
     trainer.default_hdfs_dir=null \
     trainer.default_local_dir=${SAVE_PATH} \
     trainer.rollout_save_path=${ROLLOUT_SAVE_PATH} \
-    hydra.run.dir=$CHECKPOINT_SAVE/outputs | tee $CHECKPOINT_SAVE/run.log
+    hydra.run.dir=${SAVE_PATH}/outputs | tee ${SAVE_PATH}/run.log
