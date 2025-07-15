@@ -37,3 +37,8 @@ data/bamboogle/
 data/photpotqa/
 data/p2wikimultihopqa/
 data/pmusique/
+
+Qwen2.5-7B-Instruct/
+e5-large-v2/
+index/
+wiki18_100w.jsonl

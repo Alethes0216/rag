@@ -3,7 +3,7 @@ gpu_id: "0,2"
 
 # -------------------------------------------------Retrieval Settings------------------------------------------------#
 # If set the name, the model path will be find in global paths
-retrieval_method: "/root/recall/e5-base-v2"  # name or path of the retrieval model. 
-index_path: "/root/recall/index/data00/jiajie_jin/flashrag_indexes/wiki_dpr_100w/e5_flat_inner.index" # path to the indexed file
+retrieval_method: "/data_storage/yanggb/workspace/ReCall/e5-base-v2"  # name or path of the retrieval model. 
+index_path: "/data_storage/yanggb/workspace/ReCall/wiki18_100w.jsonl" # path to the indexed file
 faiss_gpu: True # whether use gpu to hold index
-corpus_path: "/root/recall/retrieval-corpus/wiki18_100w.jsonl"  # path to corpus in '.jsonl' format that store the documents
+corpus_path: "/data_storage/yanggb/workspace/ReCall/wiki18_100w.jsonl"  # path to corpus in '.jsonl' format that store the documents

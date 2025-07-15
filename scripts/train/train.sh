@@ -6,7 +6,7 @@ MAX_PROMPT_LENGTH=1536
 MAX_RESPONSE_LENGTH=6656
 USE_RE_CALL=True
 PROMPT_TEMPLATE_NAME=re_call_template_sys
-ACTOR_MODEL_PATH=/root/recall/Qwen2.5-7B-Instruct
+ACTOR_MODEL_PATH=/data_storage/yanggb/workspace/ReCall/Qwen2.5-7B-Instruct
 ROLLOUT_NAME=vllm_with_tool
 REWARD_MANAGER=re_call
 ROLLOUT_N=5
@@ -23,9 +23,9 @@ SAVE_FREQ=10
 TEST_FREQ=10
 TOTAL_EPOCHS=2
 WANDB_API_KEY=b9e9ff3719bf807a43ce2f0591e8158d75cefedd
-SAVE_PATH=/root/checkpoints
-TRAIN_FILES=[/root/recall/data/p2wikimultihopqa/train.parquet,/root/recall/data/photpotqa/train.parquet,/root/recall/data/pmusique/train.parquet]
-TEST_FILES=[/root/recall/data/p2wikimultihopqa/test.parquet,/root/recall/data/photpotqa/test.parquet,/root/recall/data/pmusique/test.parquet]
+SAVE_PATH=/data_storage/yanggb/workspace/ReCall/checkpoints
+TRAIN_FILES=[/data_storage/yanggb/workspace/ReCall/data/p2wikimultihopqa/train.parquet,/data_storage/yanggb/workspace/ReCall/data/photpotqa/train.parquet,/data_storage/yanggb/workspace/ReCall/data/pmusique/train.parquet]
+TEST_FILES=[/data_storage/yanggb/workspace/ReCall/data/p2wikimultihopqa/test.parquet,/data_storage/yanggb/workspace/ReCall/data/photpotqa/test.parquet,/data_storage/yanggb/workspace/ReCall/data/pmusique/test.parquet]
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
