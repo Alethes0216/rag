@@ -1,15 +1,19 @@
+export CUDA_VISIBLE_DEVICES=2,3,4,5,6,7
+export WANDB_MODE=disabled
+export CUDA_LAUNCH_BLOCKING=1
+
 PROMPT_KEY=question
-TRAIN_BATCH_SIZE=256
-PPO_MINI_BATCH_SIZE=64
+TRAIN_BATCH_SIZE=192
+PPO_MINI_BATCH_SIZE=192
 LR=1e-6
-MAX_PROMPT_LENGTH=1536
-MAX_RESPONSE_LENGTH=6656
+MAX_PROMPT_LENGTH=1024
+MAX_RESPONSE_LENGTH=4096
 USE_RE_CALL=True
 PROMPT_TEMPLATE_NAME=re_call_template_sys
-ACTOR_MODEL_PATH=/data_storage/yanggb/workspace/ReCall/Qwen2.5-7B-Instruct
+ACTOR_MODEL_PATH=/root/recall/Qwen2.5-7B-Instruct
 ROLLOUT_NAME=vllm_with_tool
 REWARD_MANAGER=re_call
-ROLLOUT_N=5
+ROLLOUT_N=3
 ROLLOUT_TP=2
 ROLLOUT_GPU_UTIL=0.8
 MAX_TURNS=5
@@ -18,15 +22,16 @@ SANDBOX_URL=http://0.0.0.0:8001
 PROJECT_NAME=recall-training
 EXPERIMENT_NAME=try1
 NNODES=1
-N_GPUS_PER_NODE=2
-SAVE_FREQ=10
-TEST_FREQ=10
+N_GPUS_PER_NODE=6
+SAVE_FREQ=200
+TEST_FREQ=5
 TOTAL_EPOCHS=2
 WANDB_API_KEY=b9e9ff3719bf807a43ce2f0591e8158d75cefedd
-SAVE_PATH=/data_storage/yanggb/workspace/ReCall/checkpoints
-TRAIN_FILES=[/data_storage/yanggb/workspace/ReCall/data/p2wikimultihopqa/train.parquet,/data_storage/yanggb/workspace/ReCall/data/photpotqa/train.parquet,/data_storage/yanggb/workspace/ReCall/data/pmusique/train.parquet]
-TEST_FILES=[/data_storage/yanggb/workspace/ReCall/data/p2wikimultihopqa/test.parquet,/data_storage/yanggb/workspace/ReCall/data/photpotqa/test.parquet,/data_storage/yanggb/workspace/ReCall/data/pmusique/test.parquet]
-
+SAVE_PATH=/root/recall/checkpoints
+#TRAIN_FILES=[/root/ReCall/data/p2wikimultihopqa/train.parquet,/root/ReCall/data/photpotqa/train.parquet,/root/ReCall/data/pmusique/train.parquet]
+#TEST_FILES=[/root/ReCall/data/p2wikimultihopqa/test.parquet,/root/ReCall/data/photpotqa/test.parquet,/root/ReCall/data/pmusique/test.parquet]
+TRAIN_FILES=[/root/recall/data/pmusique/train.parquet]
+TEST_FILES=[/root/recall/data/pmusique/test.parquet]
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --train_files) TRAIN_FILES="$2"; shift 2;;
@@ -115,7 +120,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     reward_model.reward_manager=${REWARD_MANAGER} \
     trainer.critic_warmup=0 \
-    trainer.logger="[console, wandb]" \
+    trainer.logger="[console]" \
     trainer.project_name=${PROJECT_NAME} \
     trainer.experiment_name=${EXPERIMENT_NAME} \
     trainer.n_gpus_per_node=${N_GPUS_PER_NODE} \

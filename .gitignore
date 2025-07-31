@@ -39,6 +39,10 @@ data/p2wikimultihopqa/
 data/pmusique/
 
 Qwen2.5-7B-Instruct/
-e5-large-v2/
-index/
+e5-base-v2/
+wiki_dpr_100w/
 wiki18_100w.jsonl
+recall_image.tar
+flashinfer_python-0.2.5+cu124torch2.6-cp38-abi3-linux_x86_64.whl
+checkpoints/
+scripts/serving/output/

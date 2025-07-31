@@ -123,8 +123,8 @@ async def batch_search(request: BatchQueryRequest):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="./retriever_config.yaml")
-    parser.add_argument("--num_retriever", type=int, default=1)
-    parser.add_argument("--port", type=int, default=80)
+    parser.add_argument("--num_retriever", type=int, default=4)
+    parser.add_argument("--port", type=int, default=8002)
     args = parser.parse_args()
     
     init_retriever(args)

@@ -87,10 +87,8 @@ class TaskRunner:
         from omegaconf import OmegaConf
         pprint(OmegaConf.to_container(config, resolve=True))  # resolve=True will eval symbol values
         OmegaConf.resolve(config)
-
         # download the checkpoint from hdfs
         local_path = copy_to_local(config.actor_rollout_ref.model.path)
-
         # instantiate tokenizer
         from verl.utils import hf_tokenizer, hf_processor
         trust_remote_code = config.data.get('trust_remote_code', False)
@@ -172,11 +170,11 @@ class TaskRunner:
 
         compute_score = get_custom_reward_fn(config)
         if config.reward_model.reward_manager == 're_call':
-            reward_fn = reward_manager_cls(tokenizer=tokenizer, 
-                                           num_examine=0, 
+            reward_fn = reward_manager_cls(tokenizer=tokenizer,
+                                           num_examine=0,
                                            compute_score=compute_score)
-            val_reward_fn = reward_manager_cls(tokenizer=tokenizer, 
-                                               num_examine=1, 
+            val_reward_fn = reward_manager_cls(tokenizer=tokenizer,
+                                               num_examine=1,
                                                compute_score=compute_score)
         else:
             reward_kwargs = dict(config.reward_model.get("reward_kwargs", {}))
@@ -192,7 +190,6 @@ class TaskRunner:
                                             compute_score=compute_score,
                                             reward_fn_key=config.data.reward_fn_key)
         resource_pool_manager = ResourcePoolManager(resource_pool_spec=resource_pool_spec, mapping=mapping)
-
         trainer = RayPPOTrainer(config=config,
                                 tokenizer=tokenizer,
                                 processor=processor,

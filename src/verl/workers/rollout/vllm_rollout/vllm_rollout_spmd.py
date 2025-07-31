@@ -448,6 +448,9 @@ class vLLMRolloutWithTool(vLLMRollout):
                 'n': 1,  # if validate, already repeat in ray_trainer
             }
 
+        max_token_id = max (self.tokenizer.get_vocab().values())
+        kwargs["allowed_token_ids"] = list(range(max_token_id + 1))
+        
         with self.update_sampling_params(**kwargs):
             # prepare n copies for each input
             curr_inputs = []

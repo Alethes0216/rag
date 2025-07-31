@@ -117,7 +117,7 @@ class ResourcePoolManager:
             [n_gpus for process_on_nodes in self.resource_pool_spec.values() for n_gpus in process_on_nodes])
         if total_available_gpus < total_required_gpus:
             raise ValueError(
-                f"Total available GPUs {total_available_gpus} is less than total desired GPUs {total_required_gpus}")
+                f"[Resource Check] resource_pool_spec: {self.resource_pool_spec},Total available GPUs {total_available_gpus} is less than total desired GPUs {total_required_gpus}")
 
         # check each resource pool can be satisfied, O(#resource_pools * #nodes)
         for resource_pool_name, process_on_nodes in self.resource_pool_spec.items():
@@ -929,6 +929,7 @@ class RayPPOTrainer(object):
                             reward_extra_infos_dict = reward_result['reward_extra_info']
                         except Exception as e:
                             print(f'Error in reward_fn: {e}')
+                            print(reward_result)
                             reward_tensor = self.reward_fn(batch)
                             reward_extra_infos_dict = {}
 
