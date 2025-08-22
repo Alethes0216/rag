@@ -1,7 +1,7 @@
 # ------------------------------------------------Environment Settings------------------------------------------------#
 # Directory paths for data and outputs
-data_dir: "your-data-dir"
-save_dir: "your-save-dir"
+data_dir: "/mnt/llmshared-ssd-hd/yangganbo/datasets/bamboogle"
+save_dir: "/mnt/llmshared-ssd-hd/yangganbo/outputs/eval"
 
 # Seed for reproducibility
 seed: 2024
@@ -13,7 +13,7 @@ save_note: 'experiment'
 # -------------------------------------------------Retrieval Settings------------------------------------------------#
 # If set the remote url, the retriever will be a remote retriever and ignore following settings
 use_remote_retriever: True
-remote_retriever_url: "your-remote-retriever-url"
+remote_retriever_url: "http://0.0.0.0:8002"
 
 instruction: ~                    # instruction for retrieval model
 retrieval_topk: 5                 # number of retrieved documents
@@ -27,9 +27,9 @@ retrieval_pooling_method: ~       # set automatically if not provided
 
 # -------------------------------------------------Generator Settings------------------------------------------------#
 framework: sgl_remote                   # inference frame work of LLM, supporting: 'hf','vllm','fschat'
-sgl_remote_url: "your-sgl-remote-url"
-sandbox_url: "your-sandbox-url"
-generator_model: "the-model-local-path" # name or path of the generator model, for laoding tokenizer
+sgl_remote_url: "http://0.0.0.0:80"
+sandbox_url: "http://0.0.0.0:8001"
+generator_model: "/mnt/llmshared-ssd-hd/yangganbo/outputs/checkpoints/hf_model_206" # name or path of the generator model, for loading tokenizer
 generator_max_input_len: 8192           # max length of the input
 generation_params:
   do_sample: False

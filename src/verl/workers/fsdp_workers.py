@@ -166,9 +166,8 @@ class ActorRolloutRefWorker(Worker):
         self.processor = hf_processor(local_path, trust_remote_code=trust_remote_code)
 
         torch_dtype = fsdp_config.get('model_dtype', None)
-        print(f'Using torch_dtype: {torch_dtype} for model')
         if torch_dtype is None:
-            torch_dtype = torch.float32 if self._is_actor else torch.bfloat16
+            torch_dtype = torch.bfloat16
         else:
             torch_dtype = PrecisionType.to_dtype(torch_dtype)
 
@@ -202,6 +201,7 @@ class ActorRolloutRefWorker(Worker):
                                                               torch_dtype=torch_dtype,
                                                               config=actor_model_config,
                                                               attn_implementation='flash_attention_2',
+                                                              device_map='auto',
                                                               trust_remote_code=trust_remote_code)
 
             if use_remove_padding or self.ulysses_sequence_parallel_size > 1:

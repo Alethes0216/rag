@@ -1,6 +1,5 @@
 export CUDA_VISIBLE_DEVICES=2,3,4,5,6,7
-export WANDB_MODE=disabled
-export CUDA_LAUNCH_BLOCKING=1
+export WANDB_MODE=offline
 
 PROMPT_KEY=question
 TRAIN_BATCH_SIZE=192
@@ -15,7 +14,7 @@ ROLLOUT_NAME=vllm_with_tool
 REWARD_MANAGER=re_call
 ROLLOUT_N=3
 ROLLOUT_TP=2
-ROLLOUT_GPU_UTIL=0.8
+ROLLOUT_GPU_UTIL=0.85
 MAX_TURNS=5
 SEARCH_URL=http://0.0.0.0:8002
 SANDBOX_URL=http://0.0.0.0:8001
@@ -23,8 +22,8 @@ PROJECT_NAME=recall-training
 EXPERIMENT_NAME=try1
 NNODES=1
 N_GPUS_PER_NODE=6
-SAVE_FREQ=200
-TEST_FREQ=5
+SAVE_FREQ=100
+TEST_FREQ=10
 TOTAL_EPOCHS=2
 WANDB_API_KEY=b9e9ff3719bf807a43ce2f0591e8158d75cefedd
 SAVE_PATH=/root/recall/checkpoints
@@ -120,7 +119,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     reward_model.reward_manager=${REWARD_MANAGER} \
     trainer.critic_warmup=0 \
-    trainer.logger="[console]" \
+    trainer.logger="[console, wandb]" \
     trainer.project_name=${PROJECT_NAME} \
     trainer.experiment_name=${EXPERIMENT_NAME} \
     trainer.n_gpus_per_node=${N_GPUS_PER_NODE} \
