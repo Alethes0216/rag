@@ -1,7 +1,7 @@
 # ------------------------------------------------Environment Settings------------------------------------------------#
 # Directory paths for data and outputs
-data_dir: "/mnt/llmshared-ssd-hd/yangganbo/datasets/bamboogle"
-save_dir: "/mnt/llmshared-ssd-hd/yangganbo/outputs/eval"
+data_dir: "/root/recall/data/bamboogle"
+save_dir: "/root/recall/outputs/eval"
 
 # Seed for reproducibility
 seed: 2024
@@ -29,8 +29,8 @@ retrieval_pooling_method: ~       # set automatically if not provided
 framework: sgl_remote                   # inference frame work of LLM, supporting: 'hf','vllm','fschat'
 sgl_remote_url: "http://0.0.0.0:80"
 sandbox_url: "http://0.0.0.0:8001"
-generator_model: "/mnt/llmshared-ssd-hd/yangganbo/outputs/checkpoints/hf_model_206" # name or path of the generator model, for loading tokenizer
-generator_max_input_len: 8192           # max length of the input
+generator_model: "/mnt/model/Qwen2.5-3B-Instruct" # name or path of the generator model, for loading tokenizer
+generator_max_input_len: 12800           # max length of the input
 generation_params:
   do_sample: False
   max_tokens: 8192

@@ -8,19 +8,20 @@ random.seed(42)
 
 wikipedia_search_env = """import requests
 
-def wikipedia_search(query: str, top_n: int = 5):
+def wikipedia_search(query, top_n: int = 1):
     url = "<search-url-placeholder>/search"
-    
-    if query == '':
-        return 'invalid query'
-    
-    data = {'query': query, 'top_n': top_n}
-    response = requests.post(url, json=data)
+
+    if len(query) == 0:
+        return 'invalid query list'
+
     retrieval_text = ''
-    for line in response.json():
-        retrieval_text += f"{line['contents']}\\n\\n"
-    retrieval_text = retrieval_text.strip()
-    
+    for q in query:
+        data = {'query': q, 'top_n': top_n}
+        response = requests.post(url, json=data)
+        for line in response.json():
+            retrieval_text += f"\\n{q}\\n{line['contents']}\\n\\n"
+        retrieval_text = retrieval_text.strip()
+
     return retrieval_text"""
 
 wikipedia_search_schemas = [{
@@ -32,13 +33,13 @@ wikipedia_search_schemas = [{
                 "type": "object",
                 "properties": {
                     "query": {
-                        "type": "string",
-                        "description": "Query to search for."
+                        "type": "list of string",
+                        "description": "List of queries to search for."
                     },
                     "top_n": {
                         "type": "integer",
-                        "description": "Number of results to return. The default value is 5.",
-                        "default": 5
+                        "description": "Number of results to return. The default value is 1.",
+                        "default": 1
                     }
                 },
                 "required": ["query"]
@@ -51,11 +52,11 @@ wikipedia_search_schemas = json.dumps(wikipedia_search_schemas, indent=4)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--input_dir', 
+        '--input_dir',
         help='the directory of the input data, for example the dir of musique, refer to the data/download_dataset.sh to download the data'
     )
     parser.add_argument(
-        '--output_dir', 
+        '--output_dir',
         help='the directory of the output parquet data'
     )
 
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     train_data = []
     for line in lines:
         train_data.append({
-            "data_source": "2wikimultihopqa_re_call",
+            "data_source": "musique_re_call",
             "question": line['question'],
             "ability": "re_call",
             "reward_model": {
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     random.shuffle(lines)
     for line in lines[:100]:
         dev_data.append({
-            "data_source": "2wikimultihopqa_re_call",
+            "data_source": "musique_re_call",
             "question": line['question'],
             "ability": "re_call",
             "reward_model": {

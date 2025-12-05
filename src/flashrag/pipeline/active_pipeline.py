@@ -15,21 +15,65 @@ from verl.utils.dataset.template import prompt_template_dict
 from verl.utils.reward_score.re_call import remove_boxed, last_boxed_only_string
 from re_call import ReCall
 
+# wikipedia_search_env = """import requests
+
+# def wikipedia_search(query: str, top_n: int = 5):
+#     url = "<search-url-placeholder>/search"
+
+#     if query == '':
+#         return 'invalid query'
+
+#     data = {'query': query, 'top_n': top_n}
+#     response = requests.post(url, json=data)
+#     retrieval_text = ''
+#     for line in response.json():
+#         retrieval_text += f"{line['contents']}\\n\\n"
+#     retrieval_text = retrieval_text.strip()
+
+#     return retrieval_text"""
+
+# wikipedia_search_schemas = [{
+#         "type": "function",
+#         "function": {
+#             "name": "wikipedia_search",
+#             "description": "Search Wikipedia for a given query.",
+#             "parameters": {
+#                 "type": "object",
+#                 "properties": {
+#                     "query": {
+#                         "type": "string",
+#                         "description": "Query to search for."
+#                     },
+#                     "top_n": {
+#                         "type": "integer",
+#                         "description": "Number of results to return. The default value is 5.",
+#                         "default": 5
+#                     }
+#                 },
+#                 "required": ["query"]
+#             }
+#         }
+#     }
+# ]
+
+#### Update 1127 ####
+
 wikipedia_search_env = """import requests
 
-def wikipedia_search(query: str, top_n: int = 5):
+def wikipedia_search(query, top_n: int = 1):
     url = "<search-url-placeholder>/search"
-    
-    if query == '':
-        return 'invalid query'
-    
-    data = {'query': query, 'top_n': top_n}
-    response = requests.post(url, json=data)
+
+    if len(query) == 0:
+        return 'invalid query list'
+
     retrieval_text = ''
-    for line in response.json():
-        retrieval_text += f"{line['contents']}\\n\\n"
-    retrieval_text = retrieval_text.strip()
-    
+    for q in query:
+        data = {'query': q, 'top_n': top_n}
+        response = requests.post(url, json=data)
+        for line in response.json():
+            retrieval_text += f"\\n{q}\\n{line['contents']}\\n\\n"
+        retrieval_text = retrieval_text.strip()
+
     return retrieval_text"""
 
 wikipedia_search_schemas = [{
@@ -41,13 +85,13 @@ wikipedia_search_schemas = [{
                 "type": "object",
                 "properties": {
                     "query": {
-                        "type": "string",
-                        "description": "Query to search for."
+                        "type": "list of string",
+                        "description": "List of queries to search for."
                     },
                     "top_n": {
                         "type": "integer",
-                        "description": "Number of results to return. The default value is 5.",
-                        "default": 5
+                        "description": "Number of results to return. The default value is 1.",
+                        "default": 1
                     }
                 },
                 "required": ["query"]
@@ -56,6 +100,8 @@ wikipedia_search_schemas = [{
     }
 ]
 wikipedia_search_schemas = json.dumps(wikipedia_search_schemas, indent=4)
+
+#### /Update 1127 ####
 
 class ReCallPipeline(BasicPipeline):
     def __init__(self, config, retriever=None, generator=None):
@@ -72,45 +118,71 @@ class ReCallPipeline(BasicPipeline):
 
         model_url = config["sgl_remote_url"]
         executor_url = config["sandbox_url"]
-        
+
         self.re_call = ReCall(model_url, executor_url)
         self.save_dir = config["save_dir"]
-    
+
     def extract_last_assistant_response(self, text: str) -> str:
         pattern = r'<\|im_start\|>assistant\n(.*?)<\|im_end\|>'
         matches = re.findall(pattern, text, re.DOTALL)  # re.DOTALL allows . to match newlines
-        
+
         if not matches:
             return ""
-        
+
         last_response = matches[-1].strip()
-        
+
         # Remove content between <think> tags
         think_pattern = r'<think>.*?</think>'
         cleaned_response = re.sub(think_pattern, '', last_response, flags=re.DOTALL)
-        
+
         return cleaned_response.strip()
 
-    def run_item(self, item):
-        response = self.re_call.run(env=wikipedia_search_env.replace('<search-url-placeholder>', self.config["remote_retriever_url"]), func_schemas=wikipedia_search_schemas, question=item.question)
-        item.update_output("final_response", response)
+    # def run_item(self, item):
+    #     response = self.re_call.run(env=wikipedia_search_env.replace('<search-url-placeholder>', self.config["remote_retriever_url"]), func_schemas=wikipedia_search_schemas, question=item.question)
+    #     item.update_output("final_response", response)
 
-        answer_part = self.extract_last_assistant_response(response)
-        if answer_part:
-            try:
-                answer = remove_boxed(last_boxed_only_string(answer_part))
-            except Exception as e:
-                answer = ''
-        else:
-            answer = ""
-        item.update_output("pred", answer)
+    #     answer_part = self.extract_last_assistant_response(response)
+    #     if answer_part:
+    #         try:
+    #             answer = remove_boxed(last_boxed_only_string(answer_part))
+    #         except Exception as e:
+    #             answer = ''
+    #     else:
+    #         answer = ""
+    #     item.update_output("pred", answer)
+
+    def run_item(self, item):
+        try:
+            response = self.re_call.run(
+                env=wikipedia_search_env.replace('<search-url-placeholder>', self.config["remote_retriever_url"]),
+                func_schemas=wikipedia_search_schemas,
+                question=item.question
+            )
+            item.update_output("final_response", response)
+
+            answer_part = self.extract_last_assistant_response(response)
+            if answer_part:
+                try:
+                    answer = remove_boxed(last_boxed_only_string(answer_part))
+                except Exception:
+                    answer = ''
+            else:
+                answer = ""
+
+            item.update_output("pred", answer)
+
+        except Exception as e:
+            print(f"[WARNING] Item processing failed: {str(e)}")
+            item.update_output("final_response", f"ERROR: {str(e)}")
+            item.update_output("pred", "")
+
 
     def run(self, dataset, do_eval=True, pred_process_fun=None):
         with ThreadPoolExecutor(max_workers=30) as executor:
             futures = [executor.submit(self.run_item, item) for item in dataset]
             for future in tqdm(as_completed(futures), total=len(futures), desc="Inference: "):
                 future.result()
-        
+
         dataset = self.evaluate(dataset, do_eval=do_eval, pred_process_fun=pred_process_fun)
         return dataset
 
@@ -124,7 +196,7 @@ class IterativePipeline(BasicPipeline):
             retriever = get_retriever(config)
         self.generator = generator
         self.retriever = retriever
-        
+
 
     def run(self, dataset, do_eval=True, pred_process_fun=None):
         questions = dataset.question
@@ -727,7 +799,7 @@ class SelfRAGPipeline(BasicPipeline):
 
     def run(self, dataset, do_eval=True, pred_process_fun=None, long_form=False):
         run_func = self.run_batch_pred_long_form if long_form else self.run_batch_pred
-        
+
         # # to avoid oom, split the total dataset into small batches
         # all_dataset_list = []
         # for batch_dataset in tqdm(get_batch_dataset(dataset, batch_size=batch_size), desc="Batch dataset: "):
@@ -1038,7 +1110,7 @@ class SelfAskPipeline(BasicPipeline):
         dataset = self.evaluate(dataset, do_eval=do_eval, pred_process_fun=pred_process_fun)
         return dataset
 
-    
+
 class IRCOTPipeline(BasicPipeline):
     IRCOT_INSTRUCTION = 'You serve as an intelligent assistant, adept at facilitating users through complex, multi-hop reasoning across multiple documents. This task is illustrated through demonstrations, each consisting of a document set paired with a relevant question and its multi-hop reasoning thoughts. Your task is to generate one thought for current step, DON\'T generate the whole thoughts at once! If you reach what you believe to be the final step, start with "So the answer is:".'
     IRCOT_EXAMPLE = "Wikipedia Title: Kurram Garhi\nKurram Garhi is a small village located near the city of Bannu, which is the part of Khyber Pakhtunkhwa province of Pakistan. Its population is approximately 35000. Barren hills are near this village. This village is on the border of Kurram Agency. Other nearby villages are Peppal, Surwangi and Amandi Kala.\n\nWikipedia Title: 2001–02 UEFA Champions League second group stage\nEight winners and eight runners- up from the first group stage were drawn into four groups of four teams, each containing two group winners and two runners- up. Teams from the same country or from the same first round group could not be drawn together. The top two teams in each group advanced to the quarter- finals.\n\nWikipedia Title: Satellite tournament\nA satellite tournament is either a minor tournament or event on a competitive sporting tour or one of a group of such tournaments that form a series played in the same country or region.\n\nWikipedia Title: Trojkrsti\nTrojkrsti is a village in Municipality of Prilep, Republic of Macedonia.\n\nWikipedia Title: Telephone numbers in Ascension Island\nCountry Code:+ 247< br> International Call Prefix: 00 Ascension Island does not share the same country code( +290) with the rest of St Helena.\n\nQuestion: Are both Kurram Garhi and Trojkrsti located in the same country?\nThought: Kurram Garhi is located in the country of Pakistan. Trojkrsti is located in the country of Republic of Macedonia. Thus, they are not in the same country. So the answer is: no.\n\n"
@@ -1073,8 +1145,8 @@ class IRCOTPipeline(BasicPipeline):
         # Initial retrieval for all items in the batch
         questions = [item.question for item in items]
         retrieval_results, scoress = self.retriever.batch_search(questions, return_score=True)
-        for retrieval_result, scores in zip(retrieval_results,scoress):   
-            
+        for retrieval_result, scores in zip(retrieval_results,scoress):
+
             doc2score = {doc_item['id']: score for doc_item, score in zip(retrieval_result, scores)}
             id2doc = {doc_item['id']: doc_item for doc_item in retrieval_result}
             batch_retrieval_results.append(retrieval_result)
@@ -1096,11 +1168,11 @@ class IRCOTPipeline(BasicPipeline):
 
             # Batch generation for active items
             # new_thoughts_batch = self.generator.generate(input_prompts, stop=['.', '\n'])
-            
+
             # new_thoughts_batch = []
             # for prompt in input_prompts:
             #     new_thoughts_batch.append(self.generator.generate(prompt, stop=['.', '\n'])[0])
-            
+
             max_workers = 100
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_prompt = {executor.submit(self.generator.generate, prompt, stop=['.', '\n']): i for i, prompt in enumerate(input_prompts)}
@@ -1114,12 +1186,12 @@ class IRCOTPipeline(BasicPipeline):
             for idx, item_id in enumerate(active_item_ids):
                 new_thought = new_thoughts_batch[idx]
                 batch_thoughts[item_id].append(new_thought)
-                
+
                 # Check for termination condition
                 # Store intermediate outputs
                 if "So the answer is:" in new_thought:
                     items[item_id].update_output(
-                        f'intermediate_output_iter{iter_num}', 
+                        f'intermediate_output_iter{iter_num}',
                         {
                             'input_prompt': input_prompts[idx],
                             'new_thought': new_thought,
@@ -1138,7 +1210,7 @@ class IRCOTPipeline(BasicPipeline):
 
                 for i, item_id in enumerate(active_item_ids):
                     new_retrieval_result, new_scores = new_retrieval_results[i],new_scoress[i]
-                    
+
                     # Update doc2score and id2doc for the current item
                     for doc_item, score in zip(new_retrieval_result, new_scores):
                         doc_id = doc_item['id']
@@ -1174,11 +1246,11 @@ class RQRAGPipeline(BasicPipeline):
         "[S_Disambiguated_Query]",
         "[A_Response]"
     ]
-    
+
     system_prompt = {
         "qa": "Given a question that requires multi-hop reasoning, you need to decompose the question and answer based on the given context. Please provide a short and concise response."
     }
-    
+
     response_generation_params = {
         "temperature": 0,
         "top_p": 0.9,
@@ -1189,7 +1261,7 @@ class RQRAGPipeline(BasicPipeline):
         "spaces_between_special_tokens": False,
         "max_tokens": 4096
     }
-    
+
     other_generation_params = {
         "temperature": 1,
         "top_p": 0.9,
@@ -1215,12 +1287,12 @@ class RQRAGPipeline(BasicPipeline):
         self.generator = generator if generator is not None else get_generator(config)
         self.tokenizer = AutoTokenizer.from_pretrained(config["generator_model_path"], padding_side = "left")
         self.retriever = retriever if retriever is not None else get_retriever(config)
-        
+
         self.max_depth = max_depth
         self.batch_size = batch_size
-        
+
         # Due to the low effiency of original method, it only supports vllm now.
-    
+
     def preprocess_eval_data(self, items: List) -> List[str]:
         eval_examples = []
 
@@ -1249,9 +1321,9 @@ class RQRAGPipeline(BasicPipeline):
             }]
             for idx, initial_prompt in enumerate(initial_prompts_batch)
         }
-        
+
         final_outputs_batch = {idx: [] for idx in range(len(initial_prompts_batch))}
-        
+
         while any(paths for paths in paths_batch_dict.values()):
             current_batch = []
             for i, _ in paths_batch_dict.items():
@@ -1260,18 +1332,18 @@ class RQRAGPipeline(BasicPipeline):
                     current_batch.append(current_path)
                 else:
                     continue
-            
+
             if not current_batch:
                 break
-            
+
             for special_token in self.expand_on_tokens:
-                
+
                 if current_batch[0]["depth"] >= self.max_depth and special_token != "[A_Response]":
                     continue
-                
+
                 # Prepare for inputs
                 input_texts = [path["prompt"] + special_token for path in current_batch]
-            
+
                 # Generate outputs
                 if special_token != "[A_Response]":
                     init_outputs = self.generator.generate(
@@ -1290,12 +1362,12 @@ class RQRAGPipeline(BasicPipeline):
                 decoded_outputs = [output.outputs[0].text for output in init_outputs]
                 # Initialize lists to collect queries for batch retrieval
                 queries_for_search = []
-                
+
                 # Process outputs and prepare for retrieval
                 for i, decoded_output in enumerate(decoded_outputs):
                     current_path = current_batch[i]
                     decoded_output = decoded_output.replace("<s> ", "<s>")
-                    
+
                     if special_token == "[A_Response]":
                         pattern = r"(.*?)\[EOS\]"
                         matches = re.findall(pattern, decoded_output, re.DOTALL)
@@ -1307,10 +1379,10 @@ class RQRAGPipeline(BasicPipeline):
                             logprob = logprobs[token_id].logprob
                             prob = math.exp(logprob)
                             confidence += prob
-                        
+
                         if len(token_ids) > 0:
                             confidence /= len(token_ids)
-                        
+
                         new_path = {
                             "prompt": input_texts[i] + decoded_output,
                             "depth": current_path["depth"],
@@ -1325,11 +1397,11 @@ class RQRAGPipeline(BasicPipeline):
                         matches = re.findall(pattern, decoded_output, re.DOTALL)
                         query_for_search = matches[-1].strip() if matches else "dummy"
                         queries_for_search.append(query_for_search)
-                
+
                 # Perform batch retrieval
                 if queries_for_search:
                     batch_search_results = self.retriever.batch_search(queries_for_search)
-                    
+
                     for i, decoded_output in enumerate(decoded_outputs):
                         search_results = batch_search_results[i]
                         format_evidence = self.format_evidences(search_results)
@@ -1342,13 +1414,13 @@ class RQRAGPipeline(BasicPipeline):
                         paths_batch_dict[i].append(new_path)
 
         final_outputs_batch_list = [final_outputs_batch[i] for i in range(len(initial_prompts_batch))]
-        
+
         return final_outputs_batch_list
 
     def select_best_path_single_turn(self, final_outputs):
         # After generating all paths, we can select the best answer
         # Compute perplexity and confidence for each path
-        
+
         scores = []
         for path in final_outputs:
             confidence = path["confidence"]
@@ -1380,4 +1452,4 @@ class RQRAGPipeline(BasicPipeline):
 
         dataset = self.evaluate(dataset, do_eval = do_eval)
         return dataset
-    
+

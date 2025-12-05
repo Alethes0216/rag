@@ -1,7 +1,9 @@
 import re
+import json
 import string
 from typing import Union, List
 from collections import Counter
+from math import exp
 
 def remove_boxed(s):
     if "\\boxed " in s:
@@ -181,3 +183,139 @@ def compute_score_with_format(tokenizer, solution_str, ground_truth) -> tuple[fl
         return f1_score, f'correct answer, get f1 score: {f1_score}'
     else:
         return 0.1, f'wrong answer but good format: {answer}'
+
+
+def extract_queries_from_tool_calls(solution_str):
+    """
+    从 solution_str 中提取所有 tool_call 的 query 列表。
+
+    返回：
+        list[list[str]]：每个工具调用的 query 列表组成的列表，没有返回 []
+    """
+    pattern = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
+    matches = pattern.findall(solution_str)
+
+    all_queries = []
+    try:
+        for m in matches:
+            try:
+                data = json.loads(m)
+                queries = data.get("arguments", {}).get("query", [])
+                if isinstance(queries, list):
+                    all_queries.append(queries)
+            except json.JSONDecodeError:
+                continue  # JSON解析失败就跳过
+    except Exception as e:
+        print("没找到正确的工具调用形式：", e)
+        return all_queries
+    return all_queries
+
+
+def compute_score_with_format_and_efficiency(tokenizer, solution_str, ground_truth,
+                                             alpha=0.3, beta=0.2):
+    """
+    alpha: 推理轮数惩罚系数
+    beta: query长度惩罚系数
+    """
+
+    # -----------------------------
+    # Step 1: 格式检查
+    # -----------------------------
+    if not solution_str.endswith(tokenizer.eos_token):
+        detail = {
+            "format_score": 0,
+            "query_len_score": None,
+            "turn_len_score": None,
+            "f1_score": None,
+            "reason": f'not end with eos token',
+            "final_score": 0,
+        }
+        return 0, f'not end with eos token', detail
+
+    valid_template, reason = validate_template_format(solution_str)
+    if not valid_template:
+        detail = {
+            "format_score": 0,
+            "query_len_score": None,
+            "turn_len_score": None,
+            "f1_score": None,
+            "reason": f"bad format: {reason}",
+            "final_score": 0,
+        }
+        return 0, f"bad format: {reason}", detail
+    else:
+        response = reason
+
+    # -----------------------------
+    # Step 2: Parse final answer
+    # -----------------------------
+    try:
+        answer = remove_boxed(last_boxed_only_string(response))
+    except Exception as e:
+        detail = {
+            "format_score": 0,
+            "query_len_score": None,
+            "turn_len_score": None,
+            "f1_score": None,
+            "reason": f'find box error: {e}',
+            "final_score": 0,
+        }
+        return 0, f'find box error: {e}', detail
+
+    f1 = get_f1_score(answer, ground_truth)
+    base_score = f1 if f1 > 0 else 0.1
+
+    # -----------------------------
+    # Step 3: FINAL 输出才能统计 <think>
+    # -----------------------------
+    think_count = response.count("<think>")
+    turn_len_score = exp(-alpha * (think_count - 1)) if think_count > 0 else 0.1
+
+    # -----------------------------
+    # Step 4: FINAL 输出统计工具 query
+    # -----------------------------
+    tool_queries = extract_queries_from_tool_calls(solution_str)
+    if tool_queries:
+        avg_query_len = sum(len(q) for q in tool_queries) / len(tool_queries)
+    else:
+        avg_query_len = 5
+
+    query_len_score = 1 / (1 + beta * avg_query_len)
+
+    # -----------------------------
+    # Step 5: 合并奖励
+    # -----------------------------
+    final_score = 0.5 * base_score + 0.3 * turn_len_score + 0.2 * query_len_score
+
+    detail = {
+            "format_score": 1,
+            "query_len_score": query_len_score,
+            "turn_len_score": turn_len_score,
+            "f1_score": base_score,
+            "reason": "can give answer",
+            "final_score": final_score,
+        }
+    return final_score, "can give answer", detail
+
+
+
+if __name__ == "__main__":
+    solution_str = """
+    <tool_call>
+    {"name": "wikipedia_search", "arguments": {"query": ["actor who played Thelma in Thelma and Louise", "character played by the same actor in A League of Their Own"]}}
+    </tool_call><|im_end|>
+    .....
+    <tool_call>
+    {"name": "wikipedia_search", "arguments": {"query": ["actor who played Thelma in Thelma and Louise", "character played by the same actor in A League of Their Own"]}}
+    </tool_call><|im_end|>
+    """
+    beta = 0.2
+    tool_queries = extract_queries_from_tool_calls(solution_str)
+    if tool_queries:
+        avg_query_len = sum(len(q) for q in tool_queries) / len(tool_queries)
+    else:
+        avg_query_len = 5
+
+    query_len_score = 1 / (1 + beta * avg_query_len)
+
+    print(tool_queries, avg_query_len, query_len_score)

@@ -74,25 +74,26 @@ def ircot(args, config_dict):
 def re_call(args, config_dict):
     config = Config(args.config_path, config_dict)
     all_split = get_dataset(config)
+
     test_data = all_split[args.split]
-    
+
     from flashrag.pipeline import ReCallPipeline
     pipeline = ReCallPipeline(config)
     result = pipeline.run(test_data)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Running exp")
-    parser.add_argument("--config_path", type=str, default="./eval_config.yaml")
-    parser.add_argument("--method_name", type=str, default="re-call")
-    parser.add_argument("--data_dir", type=str, default="your-data-dir")
-    parser.add_argument("--dataset_name", type=str, default="bamboogle")
-    parser.add_argument("--split", type=str, default="test")
-    parser.add_argument("--save_dir", type=str, default="your-save-dir")
-    parser.add_argument("--save_note", type=str, default='your-save-note-for-identification')
-    parser.add_argument("--sgl_remote_url", type=str, default="your-sgl-remote-url")
-    parser.add_argument("--sandbox_url", type=str, default="your-sandbox-url")
-    parser.add_argument("--remote_retriever_url", type=str, default="your-remote-retriever-url")
-    parser.add_argument("--generator_model", type=str, default="your-local-model-path")
+    parser.add_argument("--config_path", type=str, default="eval_config.yaml")
+    parser.add_argument("--method_name", type=str, default="ircot",)
+    parser.add_argument("--data_dir", type=str, default="/root/recall/data")
+    parser.add_argument("--dataset_name", type=str, default="musique")
+    parser.add_argument("--split", type=str, default="dev")
+    parser.add_argument("--save_dir", type=str, default="/root/recall/outputs/baseline-eval")
+    parser.add_argument("--save_note", type=str, default='ircot')
+    parser.add_argument("--sgl_remote_url", type=str, default="http://0.0.0.0:80")
+    parser.add_argument("--sandbox_url", type=str, default="http://0.0.0.0:8001")
+    parser.add_argument("--remote_retriever_url", type=str, default="http://0.0.0.0:8002")
+    parser.add_argument("--generator_model", type=str, default="/mnt/model/Qwen2.5-3B-Instruct")
 
     func_dict = {
         "naive": naive,

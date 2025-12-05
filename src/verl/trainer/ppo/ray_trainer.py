@@ -47,6 +47,8 @@ from verl.utils.tracking import ValidationGenerationsLogger
 from torch.utils.data import Dataset, RandomSampler, SequentialSampler
 from torchdata.stateful_dataloader import StatefulDataLoader
 
+import pickle
+
 WorkerType = Type[Worker]
 
 
@@ -924,9 +926,18 @@ class RayPPOTrainer(object):
                         reward_extra_infos_dict: dict[str, list]
                         try:
                             # reward_result = self.reward_fn(batch, return_dict=True)
+                            """
+                            print("batch: ", batch)
+                            # 在调用 reward_fn 前保存 batch
+                            batch_save_path = f'batch_debug_step_{self.global_steps}.pkl'
+                            with open(batch_save_path, 'wb') as f:
+                                pickle.dump(batch, f)
+                            print(f'Batch saved to {batch_save_path}')
+                            print(os.path.join(self.config.trainer.rollout_save_path, f'train_{self.global_steps}.jsonl'))
+                            """
                             reward_result = self.reward_fn(batch, return_dict=True, curr_save_path=os.path.join(self.config.trainer.rollout_save_path, f'train_{self.global_steps}.jsonl'))
                             reward_tensor = reward_result['reward_tensor']
-                            reward_extra_infos_dict = reward_result['reward_extra_info']
+                            # reward_extra_infos_dict = reward_result['reward_extra_info']
                         except Exception as e:
                             print(f'Error in reward_fn: {e}')
                             print(reward_result)
@@ -935,9 +946,9 @@ class RayPPOTrainer(object):
 
                         batch.batch['token_level_scores'] = reward_tensor
 
-                        print(f'{list(reward_extra_infos_dict.keys())=}')
-                        if reward_extra_infos_dict:
-                            batch.non_tensor_batch.update({k: np.array(v) for k, v in reward_extra_infos_dict.items()})
+                        #print(f'{list(reward_extra_infos_dict.keys())=}')
+                        #if reward_extra_infos_dict:
+                        #    batch.non_tensor_batch.update({k: np.array(v) for k, v in reward_extra_infos_dict.items()})
 
                         # compute rewards. apply_kl_penalty if available
                         if self.config.algorithm.use_kl_in_reward:
